@@ -5,7 +5,7 @@ class SearchEngineManager
     @search_engines = []
 
     Rails.configuration.search_engines.each do |key, value|
-        @search_engines.push(Object.const_get("SearchEngine::#{key}").new(value))
+      @search_engines.push(Object.const_get("SearchEngine::#{key}").new(value))
     end
   end
 
@@ -17,13 +17,13 @@ class SearchEngineManager
     @search_engines.each do |search_engine|
       search_engine_result = search_engine.search(query)
 
-      if (search_engine_result[:total] > 0)
-        search_engine_result[:items].each_with_index do |item, index|
-          if (result_items[index])
-            result_items[index].push(item)
-          else
-            result_items.push([item])
-          end
+      next unless search_engine_result[:total] > 0
+
+      search_engine_result[:items].each_with_index do |item, index|
+        if result_items[index]
+          result_items[index].push(item)
+        else
+          result_items.push([item])
         end
       end
     end

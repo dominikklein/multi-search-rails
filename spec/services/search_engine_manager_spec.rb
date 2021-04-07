@@ -1,12 +1,11 @@
 require 'rails_helper'
 
 RSpec.describe SearchEngineManager do
-
-  let(:search_engine_manager) { described_class.new() }
+  let(:search_engine_manager) { described_class.new }
 
   describe '#initialize' do
     it 'check initialization of search engine manager' do
-      expect(described_class.new()).to be_a(SearchEngineManager)
+      expect(described_class.new).to be_a(SearchEngineManager)
     end
   end
 
