@@ -1,7 +1,7 @@
 # multi-search-rails
 
 The project is about a small REST-API, which can be used to search with multiple search engines at the same time.
-At the moment the route `/api/search/?serchQuery=Test` can be used to search for a query and the ranking from the different
+At the moment the route `/api/search/?query=Test` can be used to search for a query and the ranking from the different
 search engines can be compared:
 
 ```
