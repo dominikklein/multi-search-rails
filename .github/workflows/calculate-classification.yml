@@ -22,6 +22,6 @@ jobs:
       run: npm install @octokit/graphql
 
     - name: Calculate and Update Classification
-      run: node update-classification.mjs
+      run: node .github/scripts/update-classification.mjs
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
