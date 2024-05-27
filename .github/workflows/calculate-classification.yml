@@ -13,6 +13,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '22'
+
+    - name: Install Dependencies
+      run: npm install @octokit/graphql
+
     - name: Calculate and Update Classification
       uses: actions/github-script@v6
       with:
