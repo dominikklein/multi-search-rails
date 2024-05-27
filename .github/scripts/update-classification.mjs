@@ -20,6 +20,8 @@ async function getProjectItems(owner, repo, projectNumber) {
     repo,
   });
 
+  console.log('project', project)
+
   const projectId = project.data.find(proj => proj.number === projectNumber).id;
 
   const columns = await octokit.rest.projects.listColumns({
