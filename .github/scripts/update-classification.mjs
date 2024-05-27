@@ -1,7 +1,6 @@
 import { graphql } from '@octokit/graphql';
 import { setFailed } from '@actions/core';
 import { context } from '@actions/github';
-import fs from 'fs';
 
 const token = process.env.GITHUB_TOKEN;
 const owner = context.repo.owner;
@@ -15,20 +14,18 @@ const graphqlWithAuth = graphql.defaults({
 
 const projectNumber = 2; // Replace with your project number
 const projectFields = {
-  Priority: '112738966', // Replace with your field IDs
+  Priority: 'PriorityFieldID', // Replace with your field IDs
   Severity: 'SeverityFieldID',
   Likelihood: 'LikelihoodFieldID',
-  Classification: '112739029'
+  Classification: 'ClassificationFieldID'
 };
-
-const stateFilePath = './project-state.json';
 
 async function getProjectItems() {
   const query = `
     query($owner: String!, $repo: String!, $projectNumber: Int!) {
       repository(owner: $owner, name: $repo) {
         projectV2(number: $projectNumber) {
-          items(first: 500) {
+          items(first: 100) {
             nodes {
               id
               fieldValues(first: 10) {
@@ -39,6 +36,20 @@ async function getProjectItems() {
                       name
                     }
                     name
+                  }
+                  ... on ProjectV2ItemFieldTextValue {
+                    field {
+                      id
+                      name
+                    }
+                    text
+                  }
+                  ... on ProjectV2ItemFieldNumberValue {
+                    field {
+                      id
+                      name
+                    }
+                    number
                   }
                 }
               }
@@ -92,29 +103,27 @@ function calculateClassification(priority, severity, likelihood) {
   return (priority * severity * likelihood).toString(); // Convert to string for mutation
 }
 
-function loadState(filePath) {
-  if (fs.existsSync(filePath)) {
-    const data = fs.readFileSync(filePath);
-    return JSON.parse(data);
-  }
-  return {};
-}
-
-function saveState(state, filePath) {
-  fs.writeFileSync(filePath, JSON.stringify(state, null, 2));
-}
-
 async function run() {
   try {
     const projectItems = await getProjectItems();
-    const previousState = loadState(stateFilePath);
-    const currentState = {};
 
     for (const item of projectItems) {
       const fields = {};
+      let currentClassification = null;
       for (const field of item.fieldValues.nodes) {
-        console.log(`Field: ${field.field.name}, Value: ${field.name}`); // Debugging output
-        fields[field.field.name] = field.name;
+        if (field.__typename === 'ProjectV2ItemFieldSingleSelectValue') {
+          console.log(`Field: ${field.field.name}, Value: ${field.name}`); // Debugging output
+          fields[field.field.name] = field.name;
+        } else if (field.__typename === 'ProjectV2ItemFieldTextValue') {
+          console.log(`Field: ${field.field.name}, Value: ${field.text}`); // Debugging output
+          fields[field.field.name] = field.text;
+        } else if (field.__typename === 'ProjectV2ItemFieldNumberValue') {
+          console.log(`Field: ${field.field.name}, Value: ${field.number}`); // Debugging output
+          fields[field.field.name] = field.number;
+        }
+        if (field.field.id === projectFields.Classification) {
+          currentClassification = field.name || field.text || field.number;
+        }
       }
 
       const itemId = item.id;
@@ -122,21 +131,15 @@ async function run() {
       const severity = parseInt(fields.Severity, 10);
       const likelihood = parseInt(fields.Likelihood, 10);
 
-      currentState[itemId] = { priority, severity, likelihood };
+      const newClassification = calculateClassification(priority, severity, likelihood);
 
-      if (
-        !previousState[itemId] ||
-        previousState[itemId].priority !== priority ||
-        previousState[itemId].severity !== severity ||
-        previousState[itemId].likelihood !== likelihood
-      ) {
-        const classification = calculateClassification(priority, severity, likelihood);
-        console.log(`Calculated Classification: ${classification}`); // Debugging output
-        await updateClassification(itemId, classification);
+      if (newClassification !== currentClassification) {
+        console.log(`Updating Classification for item ${itemId}: ${newClassification}`); // Debugging output
+        await updateClassification(itemId, newClassification);
+      } else {
+        console.log(`Classification for item ${itemId} is up-to-date: ${newClassification}`); // Debugging output
       }
     }
-
-    saveState(currentState, stateFilePath);
   } catch (error) {
     console.error(error);
     setFailed(error.message);
