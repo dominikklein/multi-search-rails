@@ -12,7 +12,7 @@ const graphqlWithAuth = graphql.defaults({
   }
 });
 
-const projectNumber = 2; // Replace with your project number
+const projectNumber = 1; // Replace with your project number
 const projectFields = {
   Priority: 'PriorityFieldID', // Replace with your field IDs
   Severity: 'SeverityFieldID',
@@ -50,6 +50,20 @@ async function getProjectItems() {
                       name
                     }
                     number
+                  }
+                  ... on ProjectV2ItemFieldDateValue {
+                    field {
+                      id
+                      name
+                    }
+                    date
+                  }
+                  ... on ProjectV2ItemFieldIterationValue {
+                    field {
+                      id
+                      name
+                    }
+                    title
                   }
                 }
               }
@@ -120,9 +134,15 @@ async function run() {
         } else if (field.__typename === 'ProjectV2ItemFieldNumberValue') {
           console.log(`Field: ${field.field.name}, Value: ${field.number}`); // Debugging output
           fields[field.field.name] = field.number;
+        } else if (field.__typename === 'ProjectV2ItemFieldDateValue') {
+          console.log(`Field: ${field.field.name}, Value: ${field.date}`); // Debugging output
+          fields[field.field.name] = field.date;
+        } else if (field.__typename === 'ProjectV2ItemFieldIterationValue') {
+          console.log(`Field: ${field.field.name}, Value: ${field.title}`); // Debugging output
+          fields[field.field.name] = field.title;
         }
         if (field.field.id === projectFields.Classification) {
-          currentClassification = field.name || field.text || field.number;
+          currentClassification = field.name || field.text || field.number || field.date || field.title;
         }
       }
 
