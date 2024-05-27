@@ -1,12 +1,12 @@
-name: Calculate and Update Issue Classification
+name: Scheduled Update Issue Classification
 
 on:
   schedule:
-    - cron: '0 * * * *' # Runs every hour
+    - cron: '*/30 * * * *' # Runs every 30 minutes
   workflow_dispatch: # Allows manual triggering
 
 jobs:
-  calculate-classification:
+  update-classification:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,113 +22,6 @@ jobs:
       run: npm install @octokit/graphql
 
     - name: Calculate and Update Classification
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const { graphql } = require('@octokit/graphql');
-
-          const token = process.env.GITHUB_TOKEN;
-          const owner = context.repo.owner;
-          const repo = context.repo.repo;
-
-          const graphqlWithAuth = graphql.defaults({
-            headers: {
-              authorization: `token ${token}`
-            }
-          });
-
-          const projectNumber = 2; // Replace with your project number
-          const projectFields = {
-            Priority: '112738966', // Replace with your field IDs
-            Severity: 'SeverityFieldID',
-            Likelihood: 'LikelihoodFieldID',
-            Classification: '112739029'
-          };
-
-          async function getProjectItems() {
-            const query = `
-              query($owner: String!, $repo: String!, $projectNumber: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  projectV2(number: $projectNumber) {
-                    items(first: 500) {
-                      nodes {
-                        id
-                        fieldValues(first: 10) {
-                          nodes {
-                            ... on ProjectV2ItemFieldSingleSelectValue {
-                              field {
-                                id
-                                name
-                              }
-                              name
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-
-            const variables = {
-              owner,
-              repo,
-              projectNumber
-            };
-
-            const response = await graphqlWithAuth(query, variables);
-            return response.repository.projectV2.items.nodes;
-          }
-
-          async function updateClassification(itemId, classification) {
-            const mutation = `
-              mutation($projectId: ID!, $fieldId: ID!, $itemId: ID!, $value: String!) {
-                updateProjectV2ItemFieldValue(input: {
-                  projectId: $projectId,
-                  fieldId: $fieldId,
-                  itemId: $itemId,
-                  value: {
-                    singleSelectOptionId: $value
-                  }
-                }) {
-                  projectV2Item {
-                    id
-                  }
-                }
-              }
-            `;
-
-            const variables = {
-              projectId: projectFields.Classification,
-              fieldId: projectFields.Classification,
-              itemId,
-              value: classification
-            };
-
-            await graphqlWithAuth(mutation, variables);
-          }
-
-          function calculateClassification(priority, severity, likelihood) {
-            // Example classification logic
-            return (priority * severity * likelihood).toString(); // Convert to string for mutation
-          }
-
-          const projectItems = await getProjectItems();
-
-          for (const item of projectItems) {
-            const fields = {};
-            for (const field of item.fieldValues.nodes) {
-              fields[field.field.name] = field.name;
-            }
-
-            const priority = parseInt(fields.Priority, 10);
-            const severity = parseInt(fields.Severity, 10);
-            const likelihood = parseInt(fields.Likelihood, 10);
-
-            const classification = calculateClassification(priority, severity, likelihood);
-
-            await updateClassification(item.id, classification);
-          }
+      run: node update-classification.mjs
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
