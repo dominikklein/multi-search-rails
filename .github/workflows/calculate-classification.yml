@@ -19,7 +19,7 @@ jobs:
         node-version: '22'
 
     - name: Install Dependencies
-      run: npm install @octokit/graphql @actions/core
+      run: npm install @octokit/graphql @actions/core @actions/github
 
     - name: Calculate and Update Classification
       run: node .github/scripts/update-classification.mjs
