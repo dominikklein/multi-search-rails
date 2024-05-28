@@ -1,8 +1,8 @@
 name: Scheduled Update Issue Classification
 
 on:
-  schedule:
-    - cron: '*/30 * * * *' # Runs every 30 minutes
+  # schedule:
+  #   - cron: '*/30 * * * *' # Runs every 30 minutes
   workflow_dispatch: # Allows manual triggering
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
         node-version: '22'
 
     - name: Install Dependencies
-      run: npm install @octokit/core @octokit/plugin-rest-endpoint-methods @actions/core @actions/github
+      run: npm install @octokit/graphql @actions/core @actions/github
 
     - name: Calculate and Update Classification
       run: node .github/scripts/update-classification.mjs
